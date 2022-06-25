@@ -95,28 +95,30 @@ class RRT:
             nearest_ind = self.get_nearest_node_index(self.node_list, rnd_node)
             nearest_node = self.node_list[nearest_ind]
 
-            new_node = self.steer(nearest_node, rnd_node, self.expand_dis)
+            weight, new_node = self.steer(nearest_node, rnd_node, self.expand_dis)
 
             if self.check_if_outside_play_area(new_node, self.play_area) and \
                     self.check_collision(
                         new_node, self.obstacle_list, self.robot_radius):
                 self.node_list.append(new_node)
                 # 새로운 노드를 채택하면 edge를 연결해준다.
-                new_node.edge.append(nearest_node)
-                nearest_node.edge.append(new_node)
+                new_node.edge.append((weight, nearest_node))
+                nearest_node.edge.append((weight, new_node))
 
             if animation and i % 5 == 0:
                 self.draw_graph(rnd_node)
 
             if self.calc_dist_to_goal(self.node_list[-1].x,
                                       self.node_list[-1].y) <= self.expand_dis:
-                final_node = self.steer(self.node_list[-1], self.end,
+                weight, final_node = self.steer(self.node_list[-1], self.end,
                                         self.expand_dis)
                 if self.check_collision(
                         final_node, self.obstacle_list, self.robot_radius):
                     # final course 대신 roadmap을 대신 return
                     if roadmap:
                         self.node_list.append(final_node)
+                        final_node.edge.append((weight, self.node_list[-1]))
+                        self.node_list[-1].edge.append((weight, final_node))
                         return self.node_list
                     return self.generate_final_course(len(self.node_list) - 1)
 
@@ -152,7 +154,7 @@ class RRT:
 
         new_node.parent = from_node
 
-        return new_node
+        return extend_length, new_node
 
     def generate_final_course(self, goal_ind):
         path = [[self.end.x, self.end.y]]

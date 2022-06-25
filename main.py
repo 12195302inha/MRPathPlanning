@@ -28,17 +28,28 @@ class SSSP:
             play_area=[0, 30, 0, 30]
         )
 
-    def collide(self):
+    def collide(self, prev_q, next_q, index):
+        for q_state in next_q:
+            distance = math.sqrt((q_state.x - prev_q[index].x) ** 2 + (q_state.y - prev_q[index].y) ** 2)
+            if distance < self.rrt.robot_radius * 2:
+                return True
         return False
 
-    def calculate_score(self):
+    def calculate_score(self, q): # bfs -> A* 알고리즘.
+        for i, q_state in enumerate(q):
+            open_set = []
+            open_set.extend(q_state)
+
+            while open_set:
+                cur_node = open_set.pop()
+
         return 0
 
     def search(self, start_list, goal_list):
         roadmaps = list()
         for start, goal in zip(start_list, goal_list):
             self.rrt.set_position(start, goal)
-            roadmaps.append(self.rrt.planning(roadmap=True, animation=False))
+            roadmaps.append(self.rrt.planning(roadmap=True, animation=True))
 
         while True:
             frontier = list()
@@ -85,12 +96,12 @@ class SSSP:
                     i_prime = 1
 
                 for q_state_to in q_state_from.edge:
-                    q_prime = copy.deepcopy(s_q)
-                    q_prime[i] = q_state_to
-                    if (q_prime, i_prime) not in explored and not self.collide():
-                        score = self.calculate_score()
-                        heapq.heappush(frontier, (score, q_prime, i_prime, s))
-                        explored.append((q_prime, i_prime))
+                    q_prime = copy.deepcopy(s_q) # q_prime 생성
+                    q_prime[i] = q_state_to # 로봇을 이동
+                    if (q_prime, i_prime) not in explored and not self.collide(s_q, q_prime, i):
+                        score = self.calculate_score(q_prime) # bfs로 최소 거리 계산
+                        heapq.heappush(frontier, (score, q_prime, i_prime, s)) # frontier에 push
+                        explored.append((q_prime, i_prime)) # explored에 추가
 
     def get_random_pos_list(self, robot_n, max_x, max_y):
         pos_list = []
