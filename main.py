@@ -1,4 +1,5 @@
 import copy
+import time
 
 import matplotlib.pyplot as plt
 
@@ -10,11 +11,12 @@ import math
 
 
 class Environment:
-    def __init__(self, _width, _height, _obstacle_list, _robot_radius):
+    def __init__(self, _width, _height, _obstacle_list, _robot_radius, _robot_n):
         self.width = _width
         self.height = _height
         self.obstacle_list = _obstacle_list
         self.robot_radius = _robot_radius
+        self.robot_n = _robot_n
 
 
 class SSSP:
@@ -28,6 +30,7 @@ class SSSP:
         self.env = _env
         self.start_node = []
         self.goal_node = []
+        self.end_robot = []
         self.rrt = RRT(
             rand_area=[self.min_rand, self.max_rand],
             obstacle_list=self.env.obstacle_list,
@@ -48,9 +51,11 @@ class SSSP:
     def calculate_score(self, q): # bfs -> A* 알고리즘.
         cost_sum = 0
         for i, q_state in enumerate(q):
-            dx = abs(q_state.x - self.goal_node[i].x)
-            dy = abs(q_state.y - self.goal_node[i].y)
-            cost_sum += math.sqrt(dx ** 2 + dy ** 2)
+            cost_sum += self.a_star.search(self.roadmaps[i], q_state, self.goal_node[i])
+        # for i, q_state in enumerate(q):
+        #     dx = abs(q_state.x - self.goal_node[i].x)
+        #     dy = abs(q_state.y - self.goal_node[i].y)
+        #     cost_sum += math.sqrt(dx ** 2 + dy ** 2)
         return cost_sum
 
     @staticmethod
@@ -64,8 +69,8 @@ class SSSP:
                 node.edge.append((weight, q_state_new))
 
     def search(self):
-        start_list = sssp.get_random_pos_list(2, 20, 20)
-        goal_list = sssp.get_random_pos_list(2, 20, 20)
+        start_list = sssp.get_random_pos_list(self.env.robot_n, 20, 20)
+        goal_list = sssp.get_random_pos_list(self.env.robot_n, 20, 20)
         for start, goal in zip(start_list, goal_list):
             self.rrt.set_position(start, goal)
             roadmap = self.rrt.planning(roadmap=True, animation=False)
@@ -89,13 +94,12 @@ class SSSP:
 
                 # check all q is at goal
                 s_q = s[1]
+                self.draw_graph(s_q)
                 for j, q in enumerate(s_q):
                     if q.x != self.goal_node[j].x or q.y != self.goal_node[j].y:
                         break
                 else:
                     return s
-
-                self.draw_graph(s_q)
 
                 i = s[2]
                 q_state_from = s_q[i]
@@ -126,6 +130,8 @@ class SSSP:
                         score = self.calculate_score(q_prime) # bfs로 최소 거리 계산
                         heapq.heappush(frontier, (score, q_prime, i_prime, s)) # frontier에 push
                         explored.append((q_prime, i_prime)) # explored에 추가
+
+            self.threshold_dis -= 1
 
     def get_random_pos_list(self, robot_n, max_x, max_y):
         pos_list = []
@@ -182,10 +188,46 @@ class SSSP:
         plt.grid(True)
         plt.pause(0.01)
 
+    def draw_result(self, q):
+        plt.clf()
+        # for stopping simulation with the esc key.
+        plt.gcf().canvas.mpl_connect(
+            'key_release_event',
+            lambda event: [exit(0) if event.key == 'escape' else None])
+
+        for q_state in q:
+            self.rrt.plot_circle(q_state.x, q_state.y, self.rrt.robot_radius, '-r')
+
+        for i, roadmap in enumerate(self.roadmaps):
+            plt.plot(self.start_node[i].x, self.start_node[i].y, "x" + self.colors[i])
+            plt.plot(self.goal_node[i].x, self.goal_node[i].y, "o" + self.colors[i])
+
+        for (ox, oy, size) in self.rrt.obstacle_list:
+            self.rrt.plot_circle(ox, oy, size)
+
+        if self.rrt.play_area is not None:
+            plt.plot([self.rrt.play_area.xmin, self.rrt.play_area.xmax,
+                      self.rrt.play_area.xmax, self.rrt.play_area.xmin,
+                      self.rrt.play_area.xmin],
+                     [self.rrt.play_area.ymin, self.rrt.play_area.ymin,
+                      self.rrt.play_area.ymax, self.rrt.play_area.ymax,
+                      self.rrt.play_area.ymin],
+                     "-k")
+
+        plt.axis("equal")
+        plt.axis([-2, 30, -2, 30])
+        plt.grid(True)
+        plt.pause(0.01)
+
 
 if __name__ == '__main__':
     obstacle_list = [(15, 15, 1), (13, 16, 2), (13, 18, 2), (13, 20, 2), (17, 15, 2),
                      (19, 15, 2), (18, 20, 1)]
-    env = Environment(30, 30, obstacle_list, 0.8)
+    env = Environment(30, 30, obstacle_list, 0.8, 3)
     sssp = SSSP(env)
-    sssp.search()
+    s = sssp.search()
+    next_s = copy.deepcopy(s)
+    while next_s:
+        sssp.draw_result(next_s[1])
+        next_s = next_s[3]
+        time.sleep(0.5)
