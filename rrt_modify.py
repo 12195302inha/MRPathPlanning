@@ -33,6 +33,9 @@ class RRT:
             self.edge = []
             self.parent = None
 
+        def __lt__(self, other):
+            return True
+
     class AreaBounds:
 
         def __init__(self, area):
@@ -116,9 +119,9 @@ class RRT:
                         final_node, self.obstacle_list, self.robot_radius):
                     # final course 대신 roadmap을 대신 return
                     if roadmap:
-                        self.node_list.append(final_node)
                         final_node.edge.append((weight, self.node_list[-1]))
                         self.node_list[-1].edge.append((weight, final_node))
+                        self.node_list.append(final_node)
                         return self.node_list
                     return self.generate_final_course(len(self.node_list) - 1)
 

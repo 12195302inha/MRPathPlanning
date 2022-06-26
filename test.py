@@ -1,4 +1,14 @@
+import heapq
+
+
+class Node:
+    def __lt__(self, other):
+        return True
+
+
 if __name__ == '__main__':
-    f = open("/Users/simjoonyeol/Desktop/Temp/test.txt")
-    for line in f.readlines():
-        print(line)
+    a = list()
+    heapq.heappush(a, (-1, Node()))
+    heapq.heappush(a, (-1, Node()))
+    print(heapq.heappop(a))
+    print(heapq.heappop(a))
