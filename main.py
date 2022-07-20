@@ -52,10 +52,6 @@ class SSSP:
         cost_sum = 0
         for i, q_state in enumerate(q):
             cost_sum += self.a_star.search(self.roadmaps[i], q_state, self.goal_node[i])
-        # for i, q_state in enumerate(q):
-        #     dx = abs(q_state.x - self.goal_node[i].x)
-        #     dy = abs(q_state.y - self.goal_node[i].y)
-        #     cost_sum += math.sqrt(dx ** 2 + dy ** 2)
         return cost_sum
 
     @staticmethod

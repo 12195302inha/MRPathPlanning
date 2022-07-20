@@ -1,69 +1,50 @@
-"""
-
-AStar search
-
-author: Ashwin Bose (@atb033)
-
-"""
-import copy
-import heapq
 import math
 
 
-class ANode():
-    def __init__(self, node, g_score, h_score):
-        self.node = node
-        self.g_score = g_score
-        self.h_score = h_score
-
-    def get_f_score(self):
-        return self.g_score + self.h_score
-
-    def __lt__(self, other):
-        return self.get_f_score() < other.get_f_score()
+def get_heuristic_score(current_node, goal_node):
+    dx = abs(current_node.x - goal_node.x)
+    dy = abs(current_node.y - goal_node.y)
+    return math.sqrt(dx ** 2 + dy ** 2)
 
 
 class AStar():
-    def __init__(self):
-        self.roadmap = None
-        self.start_node = None
-        self.goal_node = None
-
-    def get_heuristic_score(self, current_node):
-        dx = abs(current_node.x - self.goal_node.x)
-        dy = abs(current_node.y - self.goal_node.y)
-        return math.sqrt(dx ** 2 + dy ** 2)
-
     def search(self, roadmap, start_node, goal_node):
-        self.roadmap = roadmap
-        self.start_node = ANode(start_node, 0, 0)
-        self.goal_node = goal_node
+        open_set = set()
+        closed_set = set()
+        f_score = dict()
+        g_score = dict()
 
-        open_set = list()
-        closed_set = list()
-
-        heapq.heappush(open_set, self.start_node)
+        open_set |= {start_node}  # f_score, g_score, h_score, vertex
+        f_score[start_node] = 0
+        g_score[start_node] = 0
 
         while open_set:
-            current_node = heapq.heappop(open_set)
-            closed_set.append(current_node.node)
+            current_node = min(f_score, key=f_score.get)
+            open_set -= {current_node}
+            closed_set |= {current_node}
 
-            for next_weight, next_node in current_node.node.edge:
-                if next_node.x == goal_node.x and next_node.y == goal_node.y:
-                    return current_node.g_score + next_weight
+            if current_node.x == goal_node.x and current_node.y == goal_node.y:
+                return g_score[current_node]
+
+            for next_weight, next_node in current_node.edge:
+                next_g_score = g_score[current_node] + next_weight
+                next_h_score = get_heuristic_score(next_node, goal_node)
+                next_f_score = next_g_score + next_h_score
+
                 if next_node not in closed_set:
-                    anode = ANode(next_node, current_node.g_score + next_weight, self.get_heuristic_score(next_node))
-                    for open_node in open_set:
-                        if open_node.node.x == anode.node.x and open_node.node.y == anode.node.y:
-                            anode_index = open_set.index(open_node)
-                            if anode.get_f_score() < open_set[anode_index].get_f_score():
-                                open_set.pop(anode_index)
-                                open_set.insert(anode_index, anode)
+                    # open_set에 있는 노드이고
+                    if next_node in open_set:
+                        # g_score가 더 작다면
+                        if g_score[next_node] > next_g_score:
+                            g_score[next_node] = next_g_score
+                            f_score[next_node] = next_f_score
 
+                    # open_set에 없고 closed_set에도 없다면
                     else:
-                        heapq.heappush(open_set, anode)
+                        open_set |= {next_node}
+                        g_score[next_node] = next_g_score
+                        f_score[next_node] = next_f_score
+
+            f_score.pop(current_node, None)
+            g_score.pop(current_node, None)
         print(1)
-
-
-
-
